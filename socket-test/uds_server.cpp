@@ -45,7 +45,7 @@ int main() {
         return 1;
     }
 
-    cout << "Client Connected";
+    cout << "Client Connected   ";
 
     // accpet the data from the client into a buffer
     char buffer[256] = {0};
