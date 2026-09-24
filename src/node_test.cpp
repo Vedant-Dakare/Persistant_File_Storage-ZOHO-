@@ -46,5 +46,17 @@ int main() {
 
     printTree(root.get());
 
+
+    // Test ls()
+    std::cout << "\nls(root):\n";
+    for (auto& name : ls(root.get())) {
+        std::cout << "  " << name << "\n";
+    }
+
+    std::cout << "ls(user):\n";
+    for (auto& name : ls(userPtr)) {
+        std::cout << "  " << name << "\n";
+    }
+
     return 0;
 }
