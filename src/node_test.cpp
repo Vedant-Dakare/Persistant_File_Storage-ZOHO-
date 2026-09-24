@@ -58,5 +58,58 @@ int main() {
         std::cout << "  " << name << "\n";
     }
 
+
+    std::cout << "\n--- mkdir tests ---\n";
+
+    FsResult r1 = mkdir(userPtr, "projects");
+    std::cout << "mkdir /home/user/projects -> "
+            << (r1 == FsResult::OK ? "OK" : "FAILED") << "\n";
+
+    FsResult r2 = mkdir(userPtr, "projects");  // duplicate, should fail
+    std::cout << "mkdir /home/user/projects (again) -> "
+            << (r2 == FsResult::ALREADY_EXISTS ? "ALREADY_EXISTS (expected)" : "UNEXPECTED") << "\n";
+
+    std::cout << "\nls(user) after mkdir:\n";
+    for (auto& name : ls(userPtr)) {
+        std::cout << "  " << name << "\n";
+    }
+
+
+    std::cout << "\n--- touch tests ---\n";
+
+    FsResult t1 = touch(userPtr, "readme.txt");
+    std::cout << "touch readme.txt -> " << (t1 == FsResult::OK ? "OK" : "FAILED") << "\n";
+
+    FsResult t2 = touch(userPtr, "readme.txt");  // touch again, should still be OK (timestamp update)
+    std::cout << "touch readme.txt (again) -> " << (t2 == FsResult::OK ? "OK (timestamp updated)" : "FAILED") << "\n";
+
+    FsResult t3 = touch(userPtr, "projects");  // name collision with existing directory
+    std::cout << "touch projects (dir exists) -> "
+            << (t3 == FsResult::ALREADY_EXISTS ? "ALREADY_EXISTS (expected)" : "UNEXPECTED") << "\n";
+
+    std::cout << "\nls(user) after touch:\n";
+    for (auto& name : ls(userPtr)) {
+        std::cout << "  " << name << "\n";
+    }
+
+
+    std::cout << "\n--- cd tests ---\n";
+
+    CdResult c1 = cd(userPtr, "projects");
+    std::cout << "cd projects -> "
+            << (c1.status == FsResult::OK ? "OK, now at " + pwd(c1.newCwd) : "FAILED") << "\n";
+
+    CdResult c2 = cd(c1.newCwd, "..");
+    std::cout << "cd .. -> "
+            << (c2.status == FsResult::OK ? "OK, now at " + pwd(c2.newCwd) : "FAILED") << "\n";
+
+    CdResult c3 = cd(userPtr, "notes.txt");  // trying to cd into a file
+    std::cout << "cd notes.txt -> "
+            << (c3.status == FsResult::NOT_A_DIRECTORY ? "NOT_A_DIRECTORY (expected)" : "UNEXPECTED") << "\n";
+
+    CdResult c4 = cd(userPtr, "doesnotexist");
+    std::cout << "cd doesnotexist -> "
+            << (c4.status == FsResult::NOT_FOUND ? "NOT_FOUND (expected)" : "UNEXPECTED") << "\n";
+
     return 0;
 }
