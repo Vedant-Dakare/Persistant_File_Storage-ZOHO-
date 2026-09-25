@@ -2,10 +2,10 @@
 #include "../include/filesystem.h"
 #include <string>
 #include <vector>
+#include <algorithm>
 
 using namespace std;
 
-// print working directory path
 string pwd(Node* current) {
     // already at the root --> "/"
     if(current -> parent == nullptr) {
@@ -68,11 +68,13 @@ FsResult touch(Node* cwd,const string &name) {
 
     for(auto &child : cwd -> children) {
         if(child -> name == name) {
-            return FsResult::ALREADY_EXISTS;
+            if(child -> isDirectory) {
+                return FsResult::ALREADY_EXISTS;
+            }
+            // file already exists, just update its timestamps
+            child -> modifiedAt = time(nullptr);
+            return FsResult::OK;
         }
-        // file already exists, just update its timestamps
-        child -> modifiedAt = time(nullptr);
-        return FsResult::OK;
     }
     
     // false-> means it is a file
@@ -103,4 +105,60 @@ CdResult cd(Node* cwd,const string &name) {
         }
     }
     return {FsResult::NOT_FOUND,nullptr};
+}
+
+FsResult rm(Node* cwd,const string &name) {
+    if(!cwd -> isDirectory) {
+        return FsResult::NOT_A_DIRECTORY;
+    }
+
+    // find_if(start,end,condition)
+    auto it = find_if(cwd -> children.begin(),cwd -> children.end(),
+        [&](const unique_ptr<Node> &child) {
+            return child -> name == name;
+    });
+
+    if(it == cwd -> children.end()) {
+        return FsResult::NOT_FOUND;
+    }
+
+    if((*it) -> isDirectory && !(*it) -> children.empty()) {
+        return FsResult::NOT_EMPTY;
+    }
+
+    cwd -> children.erase(it);
+    return FsResult::OK;
+}
+
+
+FsResult rmrf(Node* cwd,const string &name) {
+    if(!cwd -> isDirectory) {
+        return FsResult::NOT_A_DIRECTORY;
+    }
+
+    auto it = find_if(cwd -> children.begin(),cwd -> children.end(),
+        [&](const unique_ptr<Node> &child) {
+            return child -> name == name;
+    });
+    
+    if(it == cwd -> children.end()) {
+        return FsResult::NOT_FOUND;
+    }
+
+    cwd -> children.erase(it);
+    return FsResult::OK;
+}
+
+vector<LsResult>  lsLong(Node* current) {
+    vector<LsResult> entries;
+    if(!current -> isDirectory) {
+        entries.push_back({current -> name, false, current -> content.size(), current -> modifiedAt});
+        return entries;
+    }
+
+    for(auto &child : current -> children) {
+        size_t size = child -> isDirectory ? child -> children.size() : child -> content.size();
+        entries.push_back({child -> name, child -> isDirectory, size, child -> modifiedAt});
+    }
+    return entries;
 }

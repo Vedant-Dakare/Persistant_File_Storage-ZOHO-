@@ -111,5 +111,48 @@ int main() {
     std::cout << "cd doesnotexist -> "
             << (c4.status == FsResult::NOT_FOUND ? "NOT_FOUND (expected)" : "UNEXPECTED") << "\n";
 
+
+    std::cout << "\n--- rm tests ---\n";
+
+    FsResult rm1 = rm(userPtr, "readme.txt");
+    std::cout << "rm readme.txt -> " << (rm1 == FsResult::OK ? "OK" : "FAILED") << "\n";
+
+    FsResult rm2 = rm(userPtr, "projects");  // non-empty dir, should be rejected
+    std::cout << "rm projects (non-empty) -> "
+            << (rm2 == FsResult::NOT_EMPTY ? "NOT_EMPTY (expected)" : "UNEXPECTED") << "\n";
+
+    FsResult rm3 = rm(userPtr, "doesnotexist");
+    std::cout << "rm doesnotexist -> "
+            << (rm3 == FsResult::NOT_FOUND ? "NOT_FOUND (expected)" : "UNEXPECTED") << "\n";
+
+    std::cout << "\nls(user) after rm:\n";
+    for (auto& name : ls(userPtr)) {
+        std::cout << "  " << name << "\n";
+    }
+
+
+    std::cout << "\n--- rm -rf tests ---\n";
+
+    // Put something inside projects first, so we're actually testing recursive delete
+    mkdir(userPtr, "projects2");
+    CdResult intoProjects2 = cd(userPtr, "projects2");
+    touch(intoProjects2.newCwd, "a.txt");
+    mkdir(intoProjects2.newCwd, "nested");
+
+    std::cout << "ls(user) before rm -rf:\n";
+    for (auto& name : ls(userPtr)) std::cout << "  " << name << "\n";
+
+    FsResult rrf = rmrf(userPtr, "projects2");
+    std::cout << "rm -rf projects2 -> " << (rrf == FsResult::OK ? "OK" : "FAILED") << "\n";
+
+    std::cout << "ls(user) after rm -rf:\n";
+    for (auto& name : ls(userPtr)) std::cout << "  " << name << "\n";
+
+    std::cout << "\n--- ls -l test ---\n";
+    for (auto& entry : lsLong(userPtr)) {
+        std::cout << (entry.isDirectory ? "d" : "-") << "  "
+                << "size=" << entry.size << "  "
+                << "modified=" << ctime(&entry.modifiedAt);
+    }
     return 0;
 }
