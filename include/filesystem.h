@@ -50,3 +50,10 @@ struct LsResult {
 };
 
 vector<LsResult> lsLong(Node* current);
+
+struct ResolveResult {
+    FsResult status;
+    Node* node;
+};
+
+ResolveResult resolvePath(Node* cwd, Node* root, const string& path);

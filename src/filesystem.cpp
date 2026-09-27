@@ -162,3 +162,62 @@ vector<LsResult>  lsLong(Node* current) {
     }
     return entries;
 }
+
+
+vector<string> tokenizePath(const string &path) {
+    vector<string> tokens;
+    string current;
+
+    for(char c : path) {
+        if(c == '/') {
+            if(!current.empty()) {
+                tokens.push_back(current);
+                current.clear();
+            }
+        }
+        else {
+            current += c;
+        }
+    }
+    if(!current.empty()) {
+        tokens.push_back(current);
+    }
+    return tokens;
+}
+
+
+ResolveResult resolvePath(Node* cwd, Node* root, const string& path) {
+    if(path.empty()) {
+        return {FsResult::NOT_FOUND,nullptr};
+    }
+
+    Node* current = (path[0] == '/') ? root : cwd;
+    vector<string> tokens = tokenizePath(path);
+
+    for(const string &token : tokens) {
+        if(token == ".") {
+            continue;
+        }
+        if(token == "..") {
+            current = (current -> parent != NULL) ? current -> parent : current;
+            continue; 
+        }
+        if(!current -> isDirectory) {
+            return {FsResult::NOT_A_DIRECTORY,nullptr};
+        }
+
+        Node* next = nullptr;
+        for(auto &child : current -> children) {
+            if(child -> name == token) {
+                next = child.get();
+                break;
+            }
+        }
+
+        if(next == nullptr) {
+            return {FsResult::NOT_FOUND,nullptr};
+        }
+        current = next;
+    }
+    return {FsResult::OK,current};
+}

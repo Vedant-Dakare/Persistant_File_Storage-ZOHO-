@@ -154,5 +154,36 @@ int main() {
                 << "size=" << entry.size << "  "
                 << "modified=" << ctime(&entry.modifiedAt);
     }
+
+    std::cout << "\n--- resolvePath tests ---\n";
+
+    auto path1 = resolvePath(userPtr, root.get(), "/home/user/notes.txt");
+    std::cout << "/home/user/notes.txt -> "
+            << (path1.status == FsResult::OK ? pwd(path1.node) : "FAILED")
+            << "\n";
+
+    auto path2 = resolvePath(userPtr, root.get(), "../../home");
+    std::cout << "../../home (from /home/user) -> "
+            << (path2.status == FsResult::OK ? pwd(path2.node) : "FAILED")
+            << "\n";
+
+    auto path3 = resolvePath(userPtr, root.get(), "./notes.txt");
+    std::cout << "./notes.txt -> "
+            << (path3.status == FsResult::OK ? pwd(path3.node) : "FAILED")
+            << "\n";
+
+    auto path4 = resolvePath(userPtr, root.get(), "notes.txt/something");
+    std::cout << "notes.txt/something -> "
+            << (path4.status == FsResult::NOT_A_DIRECTORY
+                    ? "NOT_A_DIRECTORY (expected)"
+                    : "UNEXPECTED")
+            << "\n";
+
+    auto path5 = resolvePath(userPtr, root.get(), "/nowhere/at/all");
+    std::cout << "/nowhere/at/all -> "
+            << (path5.status == FsResult::NOT_FOUND
+                    ? "NOT_FOUND (expected)"
+                    : "UNEXPECTED")
+            << "\n";
     return 0;
 }
