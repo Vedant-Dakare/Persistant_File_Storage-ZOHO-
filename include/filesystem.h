@@ -2,6 +2,8 @@
 #include "node.h"
 #include <string>
 #include <vector>
+#include <cstddef>   
+#include <ctime>
 
 using namespace std;
 
@@ -17,7 +19,8 @@ enum class FsResult {
     ALREADY_EXISTS,
     NOT_A_DIRECTORY,
     NOT_FOUND,
-    NOT_EMPTY
+    NOT_EMPTY,
+    INVALID_PATH
 };
 
 // mkdir -> create a new directory in the current working directory
@@ -57,3 +60,9 @@ struct ResolveResult {
 };
 
 ResolveResult resolvePath(Node* cwd, Node* root, const string& path);
+
+FsResult fsMkdir(Node* cwd, Node* root, const string& path);
+FsResult fsTouch(Node* cwd, Node* root, const string& path);
+FsResult fsRm(Node* cwd, Node* root, const string& path);
+FsResult fsRmrf(Node* cwd, Node* root, const string& path);
+CdResult fsCd(Node* cwd, Node* root, const string& path);

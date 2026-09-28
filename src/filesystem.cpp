@@ -2,7 +2,10 @@
 #include "../include/filesystem.h"
 #include <string>
 #include <vector>
-#include <algorithm>
+#include <algorithm>   
+#include <memory>      
+#include <ctime>       
+
 
 using namespace std;
 
@@ -220,4 +223,112 @@ ResolveResult resolvePath(Node* cwd, Node* root, const string& path) {
         current = next;
     }
     return {FsResult::OK,current};
+}
+
+
+struct SplitPath {
+    bool valid;
+    string parentPath;  // "" for root 
+    string name;
+};
+
+static SplitPath splitPath(const string &path) {
+    // "a/b//" --> "a/b"
+
+    string p = path;
+    while(p.size() > 1 && p.back() == '/') p.pop_back();
+
+    if(p.empty() || p == "/") {
+        return {false,"",""};
+    }
+
+    size_t slash = p.find_last_of('/');
+    SplitPath out{true,"",p};
+
+    if(slash != string::npos) {
+        out.name = p.substr(slash + 1);
+        out.parentPath = (slash == 0) ? "/" : p.substr(0,slash);
+    }
+
+    if(out.name == "." || out.name == "..") {
+        out.valid = false;
+    }
+    return out;
+}
+
+static FsResult resolveParent(Node* cwd,Node* root,const string &path,Node*&parentOut,string &nameOut) {
+    SplitPath sp = splitPath(path);
+
+    if(!sp.valid) return FsResult::INVALID_PATH;
+
+    Node* parent = cwd;
+    if(!sp.parentPath.empty()) {
+        ResolveResult r = resolvePath(cwd,root,sp.parentPath);
+        if(r.status != FsResult::OK) {
+            return r.status;
+        }
+        parent = r.node;
+    }
+
+    if(!parent -> isDirectory) {
+        return FsResult::NOT_A_DIRECTORY;
+    }
+
+    parentOut = parent;
+    nameOut = sp.name;
+    return FsResult::OK;
+}
+
+
+FsResult fsMkdir(Node* cwd,Node* root, const string &path) {
+    Node* parent;
+    string name;
+
+    FsResult s = resolveParent(cwd,root,path,parent,name);
+    if(s != FsResult::OK) {
+        return s;
+    }
+    return mkdir(parent,name);
+}
+
+FsResult fsTouch(Node* cwd,Node* root,const string &path) {
+    Node* parent;
+    string name;
+
+    FsResult s = resolveParent(cwd,root,path,parent,name);
+    if(s != FsResult::OK) {
+        return s;
+    }
+    return touch(parent,name);
+}
+
+FsResult fsRm(Node* cwd,Node* root,const string &path) {
+    Node* parent;
+    string name;
+    FsResult s = resolveParent(cwd,root,path,parent,name);
+    if(s != FsResult::OK) {
+        return s;
+    }
+    return rm(parent,name);
+}
+
+FsResult fsRmrf(Node* cwd,Node* root,const string &path) {
+    Node* parent;
+    string name;
+    FsResult s = resolveParent(cwd,root,path,parent,name);
+    if(s != FsResult::OK) {
+        return s;
+    }
+    return rmrf(parent,name);
+}
+
+CdResult fsCd(Node* cwd,Node* root,const string &path) {
+    ResolveResult r = resolvePath(cwd,root,path);
+    if(r.status != FsResult::OK) {
+        return {r.status,nullptr};
+    }
+    if(!r.node -> isDirectory) {
+        return {FsResult::NOT_A_DIRECTORY,nullptr};
+    }
+    return {FsResult::OK,r.node};
 }
