@@ -9,10 +9,21 @@
 #include <sys/un.h>
 #include <unistd.h>
 #include <memory>
+#include "../include/persistence.h"
+
 
 #define SOCKET_PATH "/tmp/fs.sock"
+#define DATA_PATH "data/filesystem.img"
+
 
 using namespace std;
+
+// CD and PWD/LS never call persist() at all, since they don't mutate the tree
+static void persist(Node* root) {
+    if(!saveFilesystem(root,DATA_PATH)) {
+        cerr << "Error : failed to persist filesystem to disk"<< "\n";
+    }
+}
 
 static const char* codeFor(FsResult r) {
     switch(r) {
@@ -60,6 +71,7 @@ string handleRequest(const ParsedRequest &req,ClientSession &session,Node* root)
         if(r != FsResult::OK) {
             return buildResponse(false,codeFor(r),"mkdir: " + arg);
         }
+        persist(root);
         return buildResponse(true,note + "directory created\n");
     }
 
@@ -68,6 +80,7 @@ string handleRequest(const ParsedRequest &req,ClientSession &session,Node* root)
         if(r != FsResult::OK) {
             return buildResponse(false,codeFor(r),"touch: " + arg);
         }
+        persist(root);
         return buildResponse(true,note + "file created\n");
     }
 
@@ -76,6 +89,7 @@ string handleRequest(const ParsedRequest &req,ClientSession &session,Node* root)
         if(r != FsResult::OK) {
             return buildResponse(false,codeFor(r),"rm: " + arg);
         }
+        persist(root);
         return buildResponse(true,note + "file removed\n");
     }
 
@@ -84,6 +98,7 @@ string handleRequest(const ParsedRequest &req,ClientSession &session,Node* root)
         if(r != FsResult::OK) {
             return buildResponse(false,codeFor(r),"rm -rf: " + arg);
         }
+        persist(root);
         return buildResponse(true,note+"file removed\n");
     }
 

@@ -44,6 +44,7 @@ int main() {
         
         cout << "Client connected (fd=" << client_fd << ")\n";
 
+        // create a new session for this client and handle requests in a loop until the client disconnects
         ClientSession session{nextSessionId++,client_fd,"/"};
         Connection conn{client_fd,""};
 
