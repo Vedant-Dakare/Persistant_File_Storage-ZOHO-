@@ -9,14 +9,18 @@
 #include <sys/un.h>
 #include <unistd.h>
 #include <memory>
+#include "../include/server.h"
 #include "../include/persistence.h"
+#include <mutex>
+#include <thread>
 
+using namespace std;
+
+mutex fsMutex;   // one global lock protecting the whole filesystem tree
 
 #define SOCKET_PATH "/tmp/fs.sock"
 #define DATA_PATH "data/filesystem.img"
 
-
-using namespace std;
 
 // CD and PWD/LS never call persist() at all, since they don't mutate the tree
 static void persist(Node* root) {
@@ -41,6 +45,8 @@ string handleRequest(const ParsedRequest &req,ClientSession &session,Node* root)
     if(!req.valid) {
         return buildResponse(false,"BAD_RESPONSE","could not parse request");
     }
+
+    lock_guard<mutex> lock(fsMutex);    // lock the whole filesystem tree
 
     bool reset;
     Node* cwd = sessionCwd(session,root,reset);
@@ -112,4 +118,25 @@ string handleRequest(const ParsedRequest &req,ClientSession &session,Node* root)
     }
 
     return buildResponse(false,"UNKNOWN_COMMAND", cmd);
+}
+
+
+void clientHandler(int client_fd, int sessionId, Node* root) {
+    cout << "client connected (fd=" << client_fd << ")\n";
+
+    ClientSession session{sessionId, client_fd, "/"};
+    Connection conn{client_fd, ""};
+
+    while (true) {
+        auto line = readLine(conn);
+        if (!line) {
+            cout << "client disconnected (fd=" << client_fd << ")\n";
+            break;
+        }
+        ParsedRequest req = parseRequest(*line);
+        string response = handleRequest(req, session, root);
+        if (!sendAll(client_fd, response)) break;
+    }
+
+    close(client_fd);
 }

@@ -6,6 +6,7 @@
 #include <sys/un.h>
 #include <unistd.h>
 #include <memory>
+#include <thread>
 
 #define SOCKET_PATH "/tmp/fs.sock"
 #define DATA_PATH "data/filesystem.img"
@@ -42,25 +43,13 @@ int main() {
         int client_fd = accept(listen_fd,nullptr,nullptr);
         if(client_fd == -1) continue;
         
-        cout << "Client connected (fd=" << client_fd << ")\n";
+        int sessionId = nextSessionId++;
 
-        // create a new session for this client and handle requests in a loop until the client disconnects
-        ClientSession session{nextSessionId++,client_fd,"/"};
-        Connection conn{client_fd,""};
-
-        while(true) {
-            auto line = readLine(conn);
-            if(!line) {
-                cout << "Client disconnected";
-                break;
-            }
-            ParsedRequest req = parseRequest(*line);
-            string response = handleRequest(req,session,root);
-            if(!sendAll(client_fd,response)) {
-                break;
-            }
-        }
-        close(client_fd);
+        // creates a new thread to handle the client connection, which allows server accept the new connection while serving the previous one
+        thread t(clientHandler,client_fd,sessionId,root);
+        
+        // detach the thread from main thread, so that it can run independently and resources will be released when it finishes
+        t.detach(); 
     }
     close(listen_fd);
     unlink(SOCKET_PATH);
