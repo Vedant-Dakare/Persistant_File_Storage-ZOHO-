@@ -23,10 +23,12 @@ mutex fsMutex;   // one global lock protecting the whole filesystem tree
 
 
 // CD and PWD/LS never call persist() at all, since they don't mutate the tree
-static void persist(Node* root) {
+static bool persist(Node* root) {
     if(!saveFilesystem(root,DATA_PATH)) {
-        cerr << "Error : failed to persist filesystem to disk"<< "\n";
+        cerr << "WARNING: failed to persist filesystem to disk\n";
+        return false;
     }
+    return true;
 }
 
 static const char* codeFor(FsResult r) {
@@ -67,6 +69,9 @@ string handleRequest(const ParsedRequest &req,ClientSession &session,Node* root)
             }
             return buildResponse(true,note+out.str());
         }
+        if(!arg.empty()) {
+            return buildResponse(false,"BAD_REQUEST","ls: unknown option " + arg);
+        }
         ostringstream out;
         for(auto &name : ls(cwd)) out << name << "\n";
         return buildResponse(true,note+out.str());
@@ -77,7 +82,9 @@ string handleRequest(const ParsedRequest &req,ClientSession &session,Node* root)
         if(r != FsResult::OK) {
             return buildResponse(false,codeFor(r),"mkdir: " + arg);
         }
-        persist(root);
+        bool saved = persist(root);
+        string msg = "directory created\n";
+        if(!saved) msg += "WARNING: failed to persist filesystem to disk\n";
         return buildResponse(true,note + "directory created\n");
     }
 
@@ -86,7 +93,9 @@ string handleRequest(const ParsedRequest &req,ClientSession &session,Node* root)
         if(r != FsResult::OK) {
             return buildResponse(false,codeFor(r),"touch: " + arg);
         }
-        persist(root);
+        bool saved =persist(root);
+        string msg = "file created\n";
+        if(!saved) msg += "WARNING: failed to persist filesystem to disk\n";
         return buildResponse(true,note + "file created\n");
     }
 
@@ -95,7 +104,9 @@ string handleRequest(const ParsedRequest &req,ClientSession &session,Node* root)
         if(r != FsResult::OK) {
             return buildResponse(false,codeFor(r),"rm: " + arg);
         }
-        persist(root);
+        bool saved = persist(root);
+        string msg = "file removed\n";
+        if(!saved) msg += "WARNING: failed to persist filesystem to disk\n";
         return buildResponse(true,note + "file removed\n");
     }
 
@@ -104,7 +115,9 @@ string handleRequest(const ParsedRequest &req,ClientSession &session,Node* root)
         if(r != FsResult::OK) {
             return buildResponse(false,codeFor(r),"rm -rf: " + arg);
         }
-        persist(root);
+        bool saved = persist(root);
+        string msg = "file removed\n";
+        if(!saved) msg += "WARNING: failed to persist filesystem to disk\n";
         return buildResponse(true,note+"file removed\n");
     }
 

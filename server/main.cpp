@@ -15,15 +15,27 @@ using namespace std;
 
 int main() {
 
-    auto rootOwner = loadFilesystem(DATA_PATH);
+    auto loadResult = loadFilesystem(DATA_PATH);
+    unique_ptr<Node> rootOwner;
 
-    if(!rootOwner) {
-        cout << "No existing filesystem found, creating new one\n";
-        rootOwner = make_unique<Node>("/",true,nullptr);
+
+    switch(loadResult.status) {
+        case LoadStatus::OK:
+            cout << "Loaded filesystem from " << DATA_PATH << "\n";
+            rootOwner = move(loadResult.root);
+            break;
+        case LoadStatus::NO_FILE:
+            cout << "No existing filesystem found, creating new one\n";
+            rootOwner = make_unique<Node>("/",true,nullptr);
+            break;
+        case LoadStatus::CORRUPTED:
+            cerr << "WARNING: " << DATA_PATH << " exists but is corrupted/unreadable. "
+            << "Starting with a fresh filesystem. The corrupted file has been left "
+            << "in place for inspection.\n";
+            rootOwner = make_unique<Node>("/",true,nullptr);
+            break;
     }
-    else {
-        cout << "Loaded existing filesystem from " << DATA_PATH << "\n";
-    }
+    
 
     Node* root = rootOwner.get();
 
