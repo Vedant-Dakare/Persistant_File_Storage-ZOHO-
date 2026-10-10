@@ -32,6 +32,25 @@ string sendCommand(const string &cmd) {
     return (n > 0) ? string(buff,n) : "NO_RESPONSE";
 }
 
+void raceTest2() {
+    sendCommand("MKDIR race_dir");
+    sendCommand("MKDIR race_dir/f1");
+
+    thread remover([] () {
+        string r = sendCommand("RMRF race_dir");
+        cout << "[remover got: " << r << "]\n";
+    });
+
+    thread lister([] () {
+        string r = sendCommand("LS");
+        cout << "[lister got: " << r << "]\n";
+    });
+
+    remover.join();
+    lister.join();
+    cout << "Test2 is finished without crashing -- server is still alive? " << sendCommand("PWD") << "\n";
+}
+
 int main() {
     const int N = 20;
     vector<thread> threads;
@@ -63,4 +82,7 @@ int main() {
         pos += 1;
     }
     cout << "race_test appears in ls " << occurrences << " time(s) (expected 1)\n";
+
+    cout << "========== test2 ==========\n";
+    raceTest2();
 }
