@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <memory>
 #include <thread>
+#include <fcntl.h>    
+#include <sys/file.h> 
 
 #define SOCKET_PATH "/tmp/fs.sock"
 #define DATA_PATH "data/filesystem.img"
@@ -14,6 +16,12 @@
 using namespace std;
 
 int main() {
+    // create a lock file to ensure only one instance of the server is running
+    int lockFd = open("data/fsserver.lock",O_CREAT | O_RDWR, 0644);
+    if(lockFd == -1 || flock(lockFd,LOCK_EX | LOCK_NB) == -1) {
+        cerr << "Another instance of fsserver is already running. Exiting.\n";
+        return 1;
+    }
 
     auto loadResult = loadFilesystem(DATA_PATH);
     unique_ptr<Node> rootOwner;

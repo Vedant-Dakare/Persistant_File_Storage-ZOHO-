@@ -52,7 +52,7 @@ string handleRequest(const ParsedRequest &req,ClientSession &session,Node* root)
 
     bool reset;
     Node* cwd = sessionCwd(session,root,reset);
-    string note = reset ? "(your directory was removed, so we reset you to /)" : "";
+    string note = reset ? "(your directory was removed, so we reset you to /)\n" : "";
 
     const string &cmd = req.command;
     const string &arg = req.arg;

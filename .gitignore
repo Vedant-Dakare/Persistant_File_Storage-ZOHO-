@@ -1,0 +1,7 @@
+build/
+fsserver
+fsclient
+data/*.img
+data/*.lock
+data/*.corrupt
+*.trace

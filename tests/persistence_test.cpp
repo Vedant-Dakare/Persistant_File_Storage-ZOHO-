@@ -16,17 +16,13 @@ int main() {
         // root (and the whole tree) is destroyed here, at end of this block
     }
 
-    auto loadedRoot = loadFilesystem("test_fs.img");
-    std::cout << "load -> " << (loadedRoot ? "OK" : "FAILED") << "\n";
+    auto loaded = loadFilesystem("test_fs.img");
+    std::cout << "load -> " << (loaded.status == LoadStatus::OK ? "OK" : "FAILED") << "\n";
 
-    if (loadedRoot) {
-        std::cout << "pwd check: " << pwd(loadedRoot.get()) << "\n";
-        std::cout << "ls /:\n";
-        for (auto& n : ls(loadedRoot.get())) std::cout << "  " << n << "\n";
-
-        auto r = resolvePath(loadedRoot.get(), loadedRoot.get(), "/home/user");
-        std::cout << "ls /home/user:\n";
-        for (auto& n : ls(r.node)) std::cout << "  " << n << "\n";
+    if (loaded.status == LoadStatus::OK) {
+        Node* r = loaded.root.get();
+        std::cout << "pwd check: " << pwd(r) << "\n";
+        for (auto& n : ls(r)) std::cout << "  " << n << "\n";
     }
     // loadedRoot is a unique_ptr now -- it cleans itself up automatically
     // here at the end of main(), no leak, no manual delete needed.

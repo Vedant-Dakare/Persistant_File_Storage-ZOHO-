@@ -17,8 +17,16 @@ static string toUpper(string &s) {
     return s;
 } 
 
+static string trim(const string &s) {
+    size_t b = s.find_first_not_of(" \t\r");
+    if(b == string::npos) return "";
+    size_t e = s.find_last_not_of(" \t\r");
+    return s.substr(b,e-b+1);
+}
+
 ParsedRequest parseRequest(const string& line) {
-    string s = line;
+    string s = trim(line);
+    
     if(!s.empty() && s.back() == '\r') {
         s.pop_back();
     }

@@ -5,6 +5,7 @@
 #include <sys/un.h>
 #include <unistd.h>
 #include <sstream>
+#include <algorithm>
 
 #define SOCKET_PATH "/tmp/fs.sock"
 
@@ -92,7 +93,16 @@ int main() {
 
         if(line == "exit" || line == "quit") break;
 
-        if(!sendAll(sock_fd,line + "\n")) {
+        ParsedRequest req = parseRequest(line);
+        string wire = line;
+        if(req.command == "RM" && (req.arg == "-rf" || req.arg.rfind("-rf",0) == 0)) {
+            string rest = req.arg.substr(3);
+            size_t p = rest.find_first_not_of(' ');
+            rest = (p == string::npos) ? "" : rest.substr(p);
+            wire = "RMRF " + rest;
+        }
+
+        if(!sendAll(sock_fd, wire + "\n")) {
             cerr << "connection lost\n";
             break;
         }

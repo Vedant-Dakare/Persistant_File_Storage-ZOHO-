@@ -7,6 +7,10 @@
 
 using namespace std;
 
+static const uint32_t MAX_STRING_LEN = 16 * 1024* 1024;
+static const uint32_t MAX_CHILD_COUNT = 1000000;
+
+
 // low level write helper function
 
 static bool writeAll(int fd,const void *buf,size_t len) {
@@ -89,6 +93,7 @@ static bool readI64(int fd,int64_t &v) {
 bool static readString(int fd,string &out) {
     uint32_t len;
     if(!readU32(fd,len)) return false;
+    if(len > MAX_STRING_LEN) return false;
     if(len == 0) {
         out.clear();
         return true;
@@ -135,6 +140,11 @@ static unique_ptr<Node> readNode(int fd,Node* parent,bool &ok) {
         return nullptr;
     }
 
+    if(childCount > MAX_CHILD_COUNT) {
+        ok = false;
+        return nullptr;
+    }
+
     for(uint32_t i=0;i<childCount;i++) {
         auto child = readNode(fd,node.get(),ok);
         if(!ok) return nullptr;
@@ -145,19 +155,18 @@ static unique_ptr<Node> readNode(int fd,Node* parent,bool &ok) {
     return node;
 }
 
-unique_ptr<Node> loadFilesystem(const string &path) {
+LoadResult loadFilesystem(const string &path) {
     int fd = open(path.c_str(),O_RDONLY);
     if(fd == -1) {
-        return nullptr;
+        return {LoadStatus::NO_FILE,nullptr};
     }
 
     bool ok ;
     auto loadedRoot = readNode(fd,nullptr,ok);
     close(fd);
     if(!ok) {
-        cerr << "loadFileSystem: file is corrupted or truncated\n";
-        return nullptr;
+        return {LoadStatus::CORRUPTED,nullptr};
     }
 
-    return loadedRoot;
+    return {LoadStatus::OK,move(loadedRoot)};
 }
